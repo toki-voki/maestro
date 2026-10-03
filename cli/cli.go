@@ -31,7 +31,6 @@ func Run(args []string) int {
 		usage()
 		return badUsageExitCode
 	}
-
 }
 
 func runServer(args []string) int {
