@@ -1,0 +1,38 @@
+version: "2"
+
+linters:
+  # standard = errcheck, govet, ineffassign, staticcheck, unused
+  default: standard
+  enable:
+    - gosec      # security: secrets, weak crypto, injection, file perms, timeouts
+    - errorlint  # errors.Is/As and %w instead of == and %v
+    - gocritic   # bug + style heuristics
+    - revive     # golint successor
+    - misspell
+    - unconvert
+    - unparam
+    - nolintlint
+    - bodyclose
+  settings:
+    gosec:
+      excludes:
+        - G104 # unchecked errors, errcheck covers it
+  exclusions:
+    presets:
+      - std-error-handling
+      - common-false-positives
+    rules:
+      # doc-comment nags are noise while the API is still moving; re-enable before 1.0
+      - linters: [revive]
+        text: "^(exported|package-comments):"
+      - path: _test\.go
+        linters: [gosec, errcheck]
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/toki-voki/maestro
