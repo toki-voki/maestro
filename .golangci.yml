@@ -4,10 +4,17 @@ linters:
   # standard = errcheck, govet, ineffassign, staticcheck, unused
   default: standard
   enable:
-    - gosec      # security: secrets, weak crypto, injection, file perms, timeouts
-    - errorlint  # errors.Is/As and %w instead of == and %v
-    - gocritic   # bug + style heuristics
-    - revive     # golint successor
+    - gosec        # security: secrets, weak crypto, injection, file perms, timeouts
+    - errorlint    # errors.Is/As and %w instead of == and %v
+    - errname      # sentinels named ErrXxx, types XxxError
+    - nilerr       # returns nil after checking err != nil
+    - wastedassign # assignments overwritten before use
+    - durationcheck
+    - copyloopvar  # loop-var copies obsolete since go1.22
+    - intrange     # for i := range n
+    - usestdlibvars
+    - gocritic     # bug + style heuristics
+    - revive       # golint successor
     - misspell
     - unconvert
     - unparam
@@ -17,6 +24,9 @@ linters:
     gosec:
       excludes:
         - G104 # unchecked errors, errcheck covers it
+    nolintlint:
+      require-explanation: true # //nolint:gosec // reason
+      require-specific: true
   exclusions:
     presets:
       - std-error-handling
@@ -36,3 +46,8 @@ formatters:
     goimports:
       local-prefixes:
         - github.com/toki-voki/maestro
+
+issues:
+  # report everything in one run instead of trickling duplicates in over CI runs
+  max-issues-per-linter: 0
+  max-same-issues: 0

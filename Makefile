@@ -7,7 +7,7 @@ GOLANGCI         := $(BIN_DIR)/golangci-lint
 ARGS             ?=
 
 .DEFAULT_GOAL := help
-.PHONY: build run test test-cover fmt fmt-check lint vuln tidy check link tools clean help
+.PHONY: build run test test-cover fmt fmt-check lint lint-windows vuln tidy check link tools clean help
 
 ## build: compile maestro into bin/
 build:
@@ -39,6 +39,10 @@ fmt-check: $(GOLANGCI)
 lint: $(GOLANGCI)
 	$(GOLANGCI) run ./...
 
+## lint-windows: lint with GOOS=windows (we ship Windows binaries; syscall/path code differs)
+lint-windows: $(GOLANGCI)
+	GOOS=windows $(GOLANGCI) run ./...
+
 ## vuln: scan dependencies for known vulnerabilities
 vuln:
 	go tool govulncheck ./...
@@ -48,8 +52,8 @@ tidy:
 	go mod tidy
 	git diff --exit-code go.mod go.sum
 
-## check: fmt-check + lint + vuln + test
-check: fmt-check lint vuln test
+## check: fmt-check + lint + lint-windows + vuln + test
+check: fmt-check lint lint-windows vuln test
 
 ## link: symlink bin/maestro into GOBIN so `maestro` always runs the latest build
 link: build
