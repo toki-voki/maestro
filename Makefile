@@ -7,7 +7,7 @@ GOLANGCI         := $(BIN_DIR)/golangci-lint
 ARGS             ?=
 
 .DEFAULT_GOAL := help
-.PHONY: build run test test-cover fmt fmt-check lint lint-windows vuln tidy check link tools clean help
+.PHONY: build run test test-cover fmt fmt-check lint lint-windows vuln tidy check link tools clean hooks help
 
 ## build: compile maestro into bin/
 build:
@@ -70,6 +70,10 @@ $(GOLANGCI):
 ## clean: remove bin/ and coverage files
 clean:
 	rm -rf $(BIN_DIR) coverage.out
+
+## hooks: use the repo's git hooks (commit message rules); once per clone
+hooks:
+	git config core.hooksPath .githooks
 
 ## help: show this help
 help:
