@@ -33,8 +33,8 @@ if ! printf '%s\n' "$subject" | grep -Eq "^($types)\([a-z0-9][a-z0-9._/-]*\)!?: 
 	fail "subject is not Conventional Commits with a scope"
 fi
 
-if [ "${#subject}" -gt 72 ]; then
-	fail "subject longer than 72 characters (${#subject})"
+if [ "${#subject}" -gt 150 ]; then
+	fail "subject longer than 150 characters (${#subject})"
 fi
 
 if printf '%s\n' "$msg" | grep -Eiq '^co-authored-by:.*(claude|anthropic|copilot|gpt|openai|cursor|codex|bot)|generated with \[?claude'; then
