@@ -3,9 +3,9 @@ package main
 import (
 	"os"
 
-	"github.com/toki-voki/maestro/cli"
+	"github.com/toki-voki/maestro/cmd"
 )
 
 func main() {
-	os.Exit(cli.Run(os.Args))
+	os.Exit(cmd.Run(os.Args[1:]))
 }

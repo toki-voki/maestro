@@ -2,6 +2,17 @@
 
 Go CLI with a background server and clients talking over a unix socket.
 
+## Layout
+
+`maestro <command> [<action>] [flags]`, e.g. `maestro server start`.
+
+- `main.go` stays at the repo root (keeps `go install github.com/toki-voki/maestro@latest` short) and only calls `cmd.Run`.
+- `cmd/cmd.go` dispatches the top-level command. A command with actions gets its own package (`cmd/server/`: `server.go`
+  dispatches, one file per action); a command without actions is a single file in `cmd/` (`cmd/version.go`).
+- Commands are controllers: each owns its `flag.FlagSet` (`flag.ExitOnError`), parses args and calls into `internal/`.
+  No logic beyond that.
+- All logic lives in `internal/<domain>` (`internal/server`, `internal/client`, ...).
+
 ## Checks
 
 `make check` runs what CI runs: format check (gofumpt + goimports), golangci-lint (`.golangci.yml`), `govulncheck`,
