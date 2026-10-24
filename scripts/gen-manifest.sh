@@ -1,5 +1,7 @@
 #!/bin/sh
-# Generate distribution/latest.json from a GoReleaser dist/ directory.
+# Generate latest.json from a GoReleaser dist/ directory. In CI the result is
+# uploaded as an asset of the stable release (see release.yml); locally
+# `make manifest` writes it to distribution/latest.json (gitignored) to inspect.
 #
 #   scripts/gen-manifest.sh [dist-dir] [out-file]
 #

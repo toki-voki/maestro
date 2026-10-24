@@ -235,7 +235,7 @@ How maestro is built, checked, versioned and put in users' hands. One Makefile l
 - **DST-3 (P0)** Prebuilt, stripped, CGO-free binaries for linux/darwin/windows × amd64/arm64, with `checksums.txt`.
 - **DST-4 (P0)** `maestro version` prints the tag the binary was built from (ldflags → `cli.version`).
 - **DST-5 (P0)** One-line install for Linux/macOS that verifies the download before installing; never `curl | sh` an unverified binary.
-- **DST-6 (P1)** "Latest" is a file we control (`distribution/latest.json`), not GitHub's pointer, so a bad release is rolled back by editing one file → UPD-1.
+- **DST-6 (P1)** Each stable release carries a `latest.json` asset (version, tag, per-platform url + sha256); `install.sh` reads it through GitHub's "Latest" pointer, so a bad release is rolled back with one command (`gh release edit vX.Y.Z --latest`), no commit → UPD-1.
 - **DST-7 (P1)** Homebrew tap, deb/rpm/apk packages. homebrew-core once notable enough.
 - **DST-8 (P1)** Pre-release tags (`v0.2.0-rc1`) publish to GitHub only: no tap update, no manifest update.
 - **DST-9 (P1)** Release notes are the version's section of `CHANGELOG.md`, approved by a human before tagging. No AI trailers or footers.
@@ -279,7 +279,7 @@ git push origin v0.1.0
   │       deb / rpm / apk (nfpm)
   │       GitHub release, prerelease: auto
   │       Casks/maestro.rb → toki-voki/homebrew-tap   (skip_upload: auto → rc tags skip)
-  └─ 4. stable tags only: scripts/gen-manifest.sh → distribution/latest.json → commit to main
+  └─ 4. stable tags only: scripts/gen-manifest.sh → latest.json → gh release upload (asset on this release)
 ```
 
 Job declares `contents: write`. Secret `HOMEBREW_TAP_TOKEN` (fine-grained PAT, `contents: write` on the tap repo) is required while the cask block exists.
@@ -290,10 +290,10 @@ Job declares `contents: write`. Secret `HOMEBREW_TAP_TOKEN` (fine-grained PAT, `
 |---|---|---|---|
 | GitHub release | yes, "latest" | yes, flagged pre-release | not built (DST-11) |
 | Homebrew tap | updated | skipped | — |
-| `latest.json` | updated | untouched | — |
+| `latest.json` | uploaded as asset, served via `releases/latest/download/` | not uploaded, never "Latest" | — |
 | `install.sh` default | installs | only with `MAESTRO_VERSION=v0.2.0-rc1` | — |
 
-GitHub's own "latest" = newest non-pre-release. `latest.json` is our pointer on top of it: version, tag, date, per-platform `{url, sha256}`, one asset per line so a POSIX installer parses it without jq. Same shape as herdr's `latest.json`.
+GitHub's own "Latest" flag = newest non-pre-release, movable with `gh release edit vX.Y.Z --latest`; `https://github.com/toki-voki/maestro/releases/latest/download/latest.json` redirects to the flagged release's asset. `latest.json` itself: version, tag, date, per-platform `{url, sha256}`, one asset per line so a POSIX installer parses it without jq. Same shape as herdr's `latest.json`. Nothing in the pipeline writes to `main`.
 
 **Install**
 
@@ -320,11 +320,11 @@ curl -fsSL https://raw.githubusercontent.com/toki-voki/maestro/main/distribution
 Bump: `feat` → minor, only `fix` → patch, breaking → minor while `0.x`. Never move or reuse a pushed tag; broken release → next patch. Every user-visible change adds a line under `[Unreleased]` in the PR that makes it.
 
 **Repo rules**
-- `main`: PR required (0 approvals), rebase merges only so history stays linear (GitHub has no true fast-forward button; rebase is the closest: no merge commit, commits replayed with new SHAs), no force-push, no deletion, GitHub Actions bypasses so release step 4 can commit. Merge with `gh pr merge --rebase`. Ruleset: `.github/rulesets/protect-main.json`, apply once with `gh api repos/toki-voki/maestro/rulesets -X POST --input .github/rulesets/protect-main.json`.
+- `main`: PR required (0 approvals), rebase merges only so history stays linear (GitHub has no true fast-forward button; rebase is the closest: no merge commit, commits replayed with new SHAs), no force-push, no deletion, empty bypass list (the release workflow never writes to `main`; a GitHub Actions bypass actor is not even accepted on org-owned repos unless the app is installed in the org). Merge with `gh pr merge --rebase`. Ruleset: `.github/rulesets/protect-main.json`, applied as ruleset 25779654; re-apply after edits with `gh api repos/toki-voki/maestro/rulesets/25779654 -X PUT --input .github/rulesets/protect-main.json`.
 - Tags: optionally restrict `v*` creation to admins (tag ruleset, GitHub UI).
 - One-time: create empty repo `toki-voki/homebrew-tap` + `HOMEBREW_TAP_TOKEN` secret, or delete the `homebrew_casks` block.
 
-Files: `Makefile` · `.golangci.yml` · `.goreleaser.yaml` · `.github/workflows/{ci,release}.yml` · `.github/rulesets/protect-main.json` · `.githooks/commit-msg` · `distribution/{install.sh,latest.json}` · `scripts/{gen-manifest,changelog-section,check-commit-msg}.sh` · `CHANGELOG.md` · `.claude/skills/release/SKILL.md`
+Files: `Makefile` · `.golangci.yml` · `.goreleaser.yaml` · `.github/workflows/{ci,release}.yml` · `.github/rulesets/protect-main.json` · `.githooks/commit-msg` · `distribution/install.sh` · `scripts/{gen-manifest,changelog-section,check-commit-msg}.sh` · `CHANGELOG.md` · `.claude/skills/release/SKILL.md`
 
 ---
 
