@@ -62,17 +62,12 @@ jobs:
         run: |
           printf '%s\n' "$PR_TITLE" > "$RUNNER_TEMP/title"
           scripts/check-commit-msg.sh "$RUNNER_TEMP/title"
+      # Same target the release procedure runs against the previous tag.
       - name: Commit messages
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
-        run: |
-          status=0
-          for c in $(git rev-list --no-merges "$BASE..$HEAD"); do
-            git log -1 --format=%B "$c" > "$RUNNER_TEMP/msg"
-            scripts/check-commit-msg.sh "$RUNNER_TEMP/msg" || { echo "  in $c"; status=1; }
-          done
-          exit $status
+        run: make check-commits BASE="$BASE" HEAD_REF="$HEAD"
 
   snapshot:
     # Proves the release config builds on every PR, publishes nothing. Uses the
