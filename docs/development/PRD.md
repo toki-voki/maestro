@@ -251,18 +251,21 @@ How maestro is built, checked, versioned and put in users' hands. One Makefile l
 | `link` | `ln -sfn bin/maestro $GOPATH/bin/maestro` | once; then `maestro` is always the latest `make build` |
 | `fmt` / `fmt-check` | `golangci-lint fmt` | gofumpt + goimports, local-prefix grouping |
 | `lint` | `golangci-lint run` | `.golangci.yml`: standard set + gosec, errorlint, gocritic, revive, misspell, … |
+| `lint-windows` | `GOOS=windows golangci-lint run` | we ship Windows binaries; `_windows.go` and syscall code is otherwise unlinted |
 | `vuln` | `go tool govulncheck ./...` | CVEs in deps your code actually calls, incl. stdlib |
+| `osv-check` | `osv-scanner scan --lockfile=go.mod` | broader advisory sources (GitHub, OSV), no reachability analysis, so it complements govulncheck |
 | `test` | `go test -race -cover ./...` | |
-| `check` | fmt-check lint vuln test | pre-commit and pre-release gate |
+| `check` | fmt-check lint lint-windows vuln osv-check test | pre-commit and pre-release gate; CI runs exactly this |
 | `tidy` | `go mod tidy` + fail on diff | |
 | `release-check` / `release-snapshot` / `manifest` | goreleaser validate / full build into `dist/` / regenerate `latest.json` | dry runs, publish nothing |
+| `tools` / `clean-tools` | install / remove `.bin/` | targets install on demand anyway |
 | `hooks` | `git config core.hooksPath .githooks` | once per clone |
 
-Tooling without global installs: golangci-lint v2.11.4 is curl-installed into `./bin` (gitignored) on first `make lint`; govulncheck is a `tool` directive in `go.mod` (`go tool govulncheck`); GoReleaser runs via `go run …@latest`. A fresh clone needs only Go.
+Tooling without global installs. Two mechanisms: govulncheck is a `tool` directive in `go.mod` (`go tool govulncheck`, versioned by go.sum). golangci-lint, osv-scanner and goreleaser have dependency graphs too big to pull into go.sum, so they are pinned in the Makefile and `go install`ed into a gitignored per-checkout `.bin/` on first use, with the version in the filename (`.bin/golangci-lint-v2.14.0`) so a bump reinstalls automatically. A preinstalled copy on PATH is never used, so local and CI agree. CI caches `.bin/` keyed on the Makefile hash. A fresh clone needs only Go.
 
-Go version: the `go` line in `go.mod` (`1.26.3`) is both minimum and toolchain. `GOTOOLCHAIN=auto` downloads it if local Go is older; CI reads it through `setup-go`'s `go-version-file`. Upgrade: `go get go@1.26.N`, `make check`, commit `go.mod`. 1.26.3 is the first patch that closes GO-2026-4971, which govulncheck flagged in `server.NewHub` → `net.Listen`.
+Go version: the `go` line in `go.mod` (`1.27.3`, latest stable) is both minimum and toolchain. `GOTOOLCHAIN=auto` downloads it if local Go is older; CI reads it through `setup-go`'s `go-version-file`; the `.bin/` tools are built with that same version (it is in their filename, so a bump rebuilds them). Upgrade: `go get go@<latest>`, `make check`, commit `go.mod`. Anything below 1.26.3 fails govulncheck on GO-2026-4971 (`server.NewHub` → `net.Listen`).
 
-**CI** (`.github/workflows/ci.yml`): on push to `main` and every PR. Five parallel jobs: **lint** (golangci + fmt-check), **test**, **vuln**, **snapshot** (GoReleaser snapshot build, proves the release config without publishing), **commits** (PR title + each commit subject through `scripts/check-commit-msg.sh`). Branches without a PR run nothing.
+**CI** (`.github/workflows/ci.yml`): on push to `main` and every PR. Five parallel jobs, each a make target so CI and local runs are the same commands with the same pinned versions: **lint** (`make fmt-check lint lint-windows`), **test** (`make test`), **vuln** (`make vuln osv-check`), **snapshot** (goreleaser action pinned to the Makefile's version, snapshot build, publishes nothing), **commits** (PR title + each commit subject through `scripts/check-commit-msg.sh`). Branches without a PR run nothing. `release.yml` runs `make check` before publishing.
 
 **Release** (`.github/workflows/release.yml`):
 
@@ -305,7 +308,7 @@ curl -fsSL https://raw.githubusercontent.com/toki-voki/maestro/main/distribution
 | mise | `mise use -g ubi:toki-voki/maestro` |
 | deb / rpm / apk / Windows zip | GitHub releases page |
 
-`install.sh`: detect OS+arch → fetch `latest.json` → download archive → sha256 (sha256sum / shasum / openssl) → refuse on mismatch → `install -m 0755` into `~/.local/bin` → warn if not on PATH. Overrides: `MAESTRO_VERSION`, `MAESTRO_INSTALL_DIR`, `MAESTRO_MANIFEST_URL`.
+`install.sh`: detect OS+arch → fetch `latest.json` → download archive → sha256 (sha256sum / shasum / openssl) → refuse on mismatch → `install -m 0755` into `~/.local/bin` → if not on PATH, print the right line for the login shell (fish `fish_add_path`, zsh/bash `export`). Never edits shell config unless `MAESTRO_MODIFY_PATH=1`. Other overrides: `MAESTRO_VERSION`, `MAESTRO_INSTALL_DIR`, `MAESTRO_MANIFEST_URL`.
 
 **Cutting a release** — driven by the `release` skill (`.claude/skills/release/SKILL.md`), which stops for approval of the changelog entry:
 
@@ -317,7 +320,7 @@ curl -fsSL https://raw.githubusercontent.com/toki-voki/maestro/main/distribution
 Bump: `feat` → minor, only `fix` → patch, breaking → minor while `0.x`. Never move or reuse a pushed tag; broken release → next patch. Every user-visible change adds a line under `[Unreleased]` in the PR that makes it.
 
 **Repo rules**
-- `main`: PR required (0 approvals), no force-push, no deletion, GitHub Actions bypasses so release step 4 can commit. Ruleset: `.github/rulesets/protect-main.json`, apply once with `gh api repos/toki-voki/maestro/rulesets -X POST --input .github/rulesets/protect-main.json`.
+- `main`: PR required (0 approvals), rebase merges only so history stays linear (GitHub has no true fast-forward button; rebase is the closest: no merge commit, commits replayed with new SHAs), no force-push, no deletion, GitHub Actions bypasses so release step 4 can commit. Merge with `gh pr merge --rebase`. Ruleset: `.github/rulesets/protect-main.json`, apply once with `gh api repos/toki-voki/maestro/rulesets -X POST --input .github/rulesets/protect-main.json`.
 - Tags: optionally restrict `v*` creation to admins (tag ruleset, GitHub UI).
 - One-time: create empty repo `toki-voki/homebrew-tap` + `HOMEBREW_TAP_TOKEN` secret, or delete the `homebrew_casks` block.
 
