@@ -1,0 +1,103 @@
+# GoReleaser v2 config. Runs on `git push origin vX.Y.Z` via .github/workflows/release.yml.
+# Local dry run: make release-snapshot
+version: 2
+
+project_name: maestro
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: maestro
+    main: .
+    binary: maestro
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X github.com/toki-voki/maestro/cli.version={{.Version}}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    # maestro_1.2.3_darwin_arm64.tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs"
+      - "^style"
+      - "^test"
+      - "^chore"
+
+release:
+  github:
+    owner: toki-voki
+    name: maestro
+  draft: false
+  prerelease: auto   # v1.2.3-rc1 → pre-release
+  mode: replace
+
+# --- Homebrew tap -------------------------------------------------------------
+# Users: brew install toki-voki/tap/maestro
+# Needs: repo toki-voki/homebrew-tap (can be empty) and a repo secret HOMEBREW_TAP_TOKEN
+# (fine-grained PAT with contents:write on that repo). Remove this block to skip.
+homebrew_casks:
+  - name: maestro
+    repository:
+      owner: toki-voki
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Casks
+    # auto = don't push pre-release tags (v1.2.3-rc1) to the tap; next stable tag updates it
+    skip_upload: auto
+    homepage: https://github.com/toki-voki/maestro
+    description: Maestro CLI
+    license: Apache-2.0
+    # binaries are not notarized; strip the quarantine flag so macOS runs them
+    # `install` is deprecated upstream in favour of the declarative `install_steps`
+    # (on_macos do / run ... "{{ .StagedPath }}/maestro"), but that needs goreleaser
+    # v2.19+; switch when GORELEASER_VERSION in the Makefile is bumped past v2.18.
+    hooks:
+      post:
+        install: |
+          if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/maestro"]
+          end
+
+# --- Linux packages -----------------------------------------------------------
+nfpms:
+  - id: packages
+    package_name: maestro
+    vendor: toki-voki
+    homepage: https://github.com/toki-voki/maestro
+    maintainer: Vladimir Filipovic <vladimir.filipovic@abstract.rs>
+    description: Maestro CLI
+    license: Apache-2.0
+    formats:
+      - deb
+      - rpm
+      - apk
+    bindir: /usr/bin
