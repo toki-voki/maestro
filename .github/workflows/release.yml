@@ -1,0 +1,69 @@
+name: Release
+
+# Trigger: git tag v1.2.3 && git push origin v1.2.3
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write # create the GitHub release + upload assets
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # goreleaser needs full history for the changelog
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/cache@v4
+        with:
+          path: .bin
+          key: tools-${{ runner.os }}-${{ hashFiles('Makefile', 'go.mod') }}
+
+      # Same gate as locally and in ci.yml: fmt, lint (+windows), vuln, osv, tests
+      - name: Checks
+        run: make check
+
+      # Release body = this version's CHANGELOG.md section (approved during the
+      # release skill). Tags without a section (e.g. v1.2.3-rc1) fall back to
+      # goreleaser's commit-based changelog.
+      - name: Release notes from CHANGELOG
+        id: notes
+        run: |
+          if scripts/changelog-section.sh "$GITHUB_REF_NAME" > "$RUNNER_TEMP/notes.md"; then
+            echo "args=--release-notes=$RUNNER_TEMP/notes.md" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::no CHANGELOG.md section for $GITHUB_REF_NAME, using commit log"
+            echo "args=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: v2.18.3
+          args: release --clean ${{ steps.notes.outputs.args }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Only needed while the homebrew_casks: block exists in .goreleaser.yaml
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      # Stable tags only: point distribution/latest.json (read by install.sh) at this release.
+      # Pre-release tags (v1.2.3-rc1) publish to GitHub but leave the manifest alone.
+      - name: Update latest.json on main
+        if: ${{ !contains(github.ref_name, '-') }}
+        run: |
+          scripts/gen-manifest.sh dist /tmp/latest.json
+          git fetch origin main
+          git checkout main
+          cp /tmp/latest.json distribution/latest.json
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add distribution/latest.json
+          git commit -m "release(distribution): point latest.json at ${{ github.ref_name }}"
+          git push origin main
