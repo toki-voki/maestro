@@ -233,7 +233,7 @@ How maestro is built, checked, versioned and put in users' hands. One Makefile l
 - **DST-1 (P0)** One command runs every check CI runs (`make check`: format, lint incl. gosec, govulncheck, race tests). Same result locally and in CI.
 - **DST-2 (P0)** Pushing a `v*` tag is the only manual publish step; everything else is automated and reproducible from the tag.
 - **DST-3 (P0)** Prebuilt, stripped, CGO-free binaries for linux/darwin/windows × amd64/arm64, with `checksums.txt`.
-- **DST-4 (P0)** `maestro version` prints the tag the binary was built from (ldflags → `cli.version`).
+- **DST-4 (P0)** `maestro version` prints the tag the binary was built from (ldflags → `cmd.version`).
 - **DST-5 (P0)** One-line install for Linux/macOS that verifies the download before installing; never `curl | sh` an unverified binary.
 - **DST-6 (P1)** Each stable release carries a `latest.json` asset (version, tag, per-platform url + sha256); `install.sh` reads it through GitHub's "Latest" pointer, so a bad release is rolled back with one command (`gh release edit vX.Y.Z --latest`), no commit → UPD-1.
 - **DST-7 (P1)** Homebrew tap, deb/rpm/apk packages. homebrew-core once notable enough.
@@ -247,7 +247,7 @@ How maestro is built, checked, versioned and put in users' hands. One Makefile l
 
 | `make` target | runs | note |
 |---|---|---|
-| `build` | `go build -trimpath -ldflags "-s -w -X …/cli.version=$(git describe)"` → `bin/maestro` | `-s -w` strips debug info; `-X` injects version |
+| `build` | `go build -trimpath -ldflags "-s -w -X …/cmd.version=$(git describe)"` → `bin/maestro` | `-s -w` strips debug info; `-X` injects version |
 | `link` | `ln -sfn bin/maestro $GOPATH/bin/maestro` | once; then `maestro` is always the latest `make build` |
 | `fmt` / `fmt-check` | `golangci-lint fmt` | gofumpt + goimports, local-prefix grouping |
 | `lint` | `golangci-lint run` | `.golangci.yml`: standard set + gosec, errorlint, gocritic, revive, misspell, … |

@@ -24,7 +24,7 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - -s -w -X github.com/toki-voki/maestro/cli.version={{.Version}}
+      - -s -w -X github.com/toki-voki/maestro/cmd.version={{.Version}}
     mod_timestamp: "{{ .CommitTimestamp }}"
 
 archives:

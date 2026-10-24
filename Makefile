@@ -3,7 +3,7 @@ BIN_DIR    := bin
 BINARY     := $(BIN_DIR)/maestro
 GOBIN      ?= $(shell go env GOPATH)/bin
 VERSION    := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
-LDFLAGS    := -s -w -X $(MODULE)/cli.version=$(VERSION)
+LDFLAGS    := -s -w -X $(MODULE)/cmd.version=$(VERSION)
 ARGS       ?=
 
 # Dev tools. Either go.mod `tool` directives (run with `go tool <name>`,
