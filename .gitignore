@@ -43,3 +43,5 @@ bin/
 # Per-checkout dev tools (make tools)
 .bin/
 dist/
+# make manifest output; the real one is a release asset, never committed
+distribution/latest.json

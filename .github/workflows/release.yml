@@ -53,17 +53,14 @@ jobs:
           # Only needed while the homebrew_casks: block exists in .goreleaser.yaml
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
-      # Stable tags only: point distribution/latest.json (read by install.sh) at this release.
-      # Pre-release tags (v1.2.3-rc1) publish to GitHub but leave the manifest alone.
-      - name: Update latest.json on main
+      # Stable tags only: attach latest.json to this release. install.sh reads it via
+      # .../releases/latest/download/latest.json, which GitHub redirects to whichever
+      # release carries the "Latest" flag (never a pre-release). Rollback = move the
+      # flag: gh release edit vX.Y.Z --latest. Nothing is committed to main.
+      - name: Upload latest.json release asset
         if: ${{ !contains(github.ref_name, '-') }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          scripts/gen-manifest.sh dist /tmp/latest.json
-          git fetch origin main
-          git checkout main
-          cp /tmp/latest.json distribution/latest.json
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add distribution/latest.json
-          git commit -m "release(distribution): point latest.json at ${{ github.ref_name }}"
-          git push origin main
+          scripts/gen-manifest.sh dist "$RUNNER_TEMP/latest.json"
+          gh release upload "$GITHUB_REF_NAME" "$RUNNER_TEMP/latest.json" --clobber

@@ -5,13 +5,13 @@
 #
 # Resolution order:
 #   1. MAESTRO_VERSION set        → that GitHub release tag, verified against its checksums.txt
-#   2. otherwise                  → distribution/latest.json manifest (stable channel), verified
-#                                   against the sha256 recorded in the manifest
+#   2. otherwise                  → latest.json asset of the GitHub release flagged "Latest"
+#                                   (stable channel), verified against the sha256 it records
 #
 # Env overrides:
 #   MAESTRO_VERSION       tag to install, e.g. v0.1.0
 #   MAESTRO_INSTALL_DIR   target dir                    (default: ~/.local/bin)
-#   MAESTRO_MANIFEST_URL  manifest location             (default: raw GitHub, main branch)
+#   MAESTRO_MANIFEST_URL  manifest location             (default: latest release asset)
 #   MAESTRO_MODIFY_PATH=1 append the install dir to your shell profile if it is not on PATH
 #                         (default: only print the line to add)
 set -eu
@@ -19,7 +19,7 @@ set -eu
 REPO="toki-voki/maestro"
 BIN="maestro"
 INSTALL_DIR="${MAESTRO_INSTALL_DIR:-$HOME/.local/bin}"
-MANIFEST_URL="${MAESTRO_MANIFEST_URL:-https://raw.githubusercontent.com/${REPO}/main/distribution/latest.json}"
+MANIFEST_URL="${MAESTRO_MANIFEST_URL:-https://github.com/${REPO}/releases/latest/download/latest.json}"
 
 log()  { printf '[maestro] %s\n' "$*"; }
 warn() { printf '[maestro] warning: %s\n' "$*" >&2; }

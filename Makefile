@@ -107,7 +107,7 @@ release-check: $(GORELEASER)
 release-snapshot: $(GORELEASER)
 	$(GORELEASER) release --snapshot --clean --skip=publish
 
-## manifest: regenerate distribution/latest.json from dist/ (CI does this on stable tags)
+## manifest: generate distribution/latest.json from dist/ for inspection (CI uploads it as a release asset on stable tags)
 manifest:
 	scripts/gen-manifest.sh dist distribution/latest.json
 

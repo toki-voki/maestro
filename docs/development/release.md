@@ -8,9 +8,12 @@ format).
 Pushing the tag triggers `.github/workflows/release.yml`: lint, tests,
 GoReleaser (binaries, archives, checksums, deb/rpm/apk, Homebrew cask), with
 the GitHub release body taken from `scripts/changelog-section.sh <tag>` — the
-exact section the user approved. Stable tags then update
-`distribution/latest.json` on main. `main` is protected (PR required), so the
-changelog commit lands through a PR; only the tag is pushed directly.
+exact section the user approved. Stable tags also get a `latest.json` asset,
+which `install.sh` fetches through `releases/latest/download/`, i.e. from
+whichever release carries GitHub's "Latest" flag; to roll the installer back
+to an older release run `gh release edit vX.Y.Z --latest`. `main` is protected
+(PR required, no bypass), so the changelog commit lands through a PR; only the
+tag is pushed directly, and the workflow never writes to `main`.
 
 Two hard stops: **the checks must pass** before anything is written, and
 **the user must approve the CHANGELOG entry** before anything is committed,
