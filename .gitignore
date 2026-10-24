@@ -31,5 +31,15 @@ go.work.sum
 # .idea/
 # .vscode/
 
-# Build output and local tools
+# Obsidian vault settings (repo root is opened as a vault; per-user UI state)
+.obsidian/
+
+# Docs site (docs/website) dependencies and Astro cache
+node_modules/
+.astro/
+
+# Build output
 bin/
+# Per-checkout dev tools (make tools)
+.bin/
+dist/
