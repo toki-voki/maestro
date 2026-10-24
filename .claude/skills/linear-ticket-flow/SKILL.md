@@ -18,13 +18,21 @@ mention it, do not ask for a ticket.
 
 - Look in the request for an issue key (`[A-Z][A-Z0-9]+-[0-9]+`) or a
   `linear.app/.../issue/<KEY>` URL. Also accept a key in the current branch
-  name (`rxl-132/<slug>`, or Linear's generated `rxl-132-<slug>`).
+  name (`rxl-132/<slug>`, or Linear's generated `shef-3-<slug>`).
 - Found → `get_issue` with fields `status`, `statusType`, `url`, `gitBranchName`,
   `title`. Keep the key for the whole session.
 - Not found, and the task is a code change (not a question, review or
   explanation) → ask **once**, in the first reply, without blocking: start the
   work and end the message with "Linear ticket for this? (key, or `none`)".
   `none` or no answer → never ask again this session.
+
+## 1b. Branch for the ticket
+
+When work on a ticket needs a new branch, use the issue's `gitBranchName` from
+`get_issue` as-is, branched from `origin/main`. The workspace format is
+`identifier-title`, e.g. SHEF-3 → `shef-3-maestro-skeleton-improvements-first-working-pane-server-stop`.
+Do not invent a shorter name: the key in the branch name is what lets Linear
+link the PR to the issue.
 
 ## 2. Transitions
 
