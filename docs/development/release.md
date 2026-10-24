@@ -40,7 +40,9 @@ tagged or pushed.
    make tidy              # go.mod/go.sum must already be tidy
    make release-check     # .goreleaser.yaml is valid
    make release-snapshot  # full release build into dist/, publishes nothing
+   make check-commits BASE=<prev-tag>   # every subject since the last release passes the commit rules
    ```
+   (first release: `make check-commits BASE=$(git rev-list --max-parents=0 HEAD)`)
    `govulncheck` also scans the standard library of the local Go toolchain; if
    it flags stdlib CVEs fixed upstream, upgrade Go to the version pinned in
    `go.mod` rather than skipping. If `fmt-check` fails, run `make fmt`. Report

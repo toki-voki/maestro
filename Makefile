@@ -39,7 +39,7 @@ $(eval $(call tool-rule,osv-scanner,github.com/google/osv-scanner/v2/cmd/osv-sca
 $(eval $(call tool-rule,goreleaser,github.com/goreleaser/goreleaser/v2,$(GORELEASER_VERSION)))
 
 .DEFAULT_GOAL := help
-.PHONY: build run test test-cover fmt fmt-check lint lint-windows vuln osv-check tidy check link tools release-check release-snapshot manifest clean clean-tools hooks help
+.PHONY: build run test test-cover fmt fmt-check lint lint-windows vuln osv-check tidy check check-commits link tools release-check release-snapshot manifest clean clean-tools hooks help
 
 ## build: compile maestro into bin/ (version from git describe)
 build:
@@ -118,6 +118,17 @@ clean:
 ## clean-tools: remove .bin/ dev tools (reinstalled on demand)
 clean-tools:
 	rm -rf $(TOOLS_DIR)
+
+## check-commits: validate every commit subject in BASE..HEAD_REF, e.g. make check-commits BASE=v0.1.0
+BASE     ?= origin/main
+HEAD_REF ?= HEAD
+check-commits:
+	@tmp=$$(mktemp); status=0; \
+	for c in $$(git rev-list --no-merges "$(BASE)..$(HEAD_REF)"); do \
+		git log -1 --format=%B "$$c" > "$$tmp"; \
+		scripts/check-commit-msg.sh "$$tmp" || { echo "  in $$c"; status=1; }; \
+	done; \
+	rm -f "$$tmp"; exit $$status
 
 ## hooks: use the repo's git hooks (commit message rules); once per clone
 hooks:
