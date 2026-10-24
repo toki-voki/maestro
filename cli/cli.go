@@ -10,6 +10,9 @@ import (
 
 const badUsageExitCode = 2
 
+// version is set at build time via -ldflags "-X github.com/toki-voki/maestro/cli.version=...".
+var version = "dev"
+
 func Run(args []string) int {
 	args = args[1:]
 
@@ -23,6 +26,9 @@ func Run(args []string) int {
 		return runServer(args[1:])
 	case "client":
 		return runClient(args[1:])
+	case "version", "-v", "--version":
+		fmt.Println("maestro " + version)
+		return 0
 	case "-h", "--help":
 		usage()
 		return 0
@@ -78,5 +84,6 @@ commands:
 	server start    start the server
 	server stop     stop the running server
 	client start    attach to the server
+	version         print version
 `)
 }
