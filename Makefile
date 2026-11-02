@@ -40,7 +40,7 @@ $(eval $(call tool-rule,osv-scanner,github.com/google/osv-scanner/v2/cmd/osv-sca
 $(eval $(call tool-rule,goreleaser,github.com/goreleaser/goreleaser/v2,$(GORELEASER_VERSION)))
 
 .DEFAULT_GOAL := help
-.PHONY: build run test test-cover fmt fmt-check lint lint-windows vuln osv-check tidy check check-commits link tools release-check release-snapshot manifest clean clean-tools hooks help
+.PHONY: build run server-start client-start test test-cover fmt fmt-check lint lint-windows vuln osv-check tidy check check-commits link tools release-check release-snapshot manifest clean clean-tools hooks help
 
 ## build: compile maestro into bin/ (version from git describe)
 build:
@@ -52,6 +52,14 @@ run:
 	MAESTRO_SERVER_LOG_FILE=$${MAESTRO_SERVER_LOG_FILE:-$(LOG_DIR)/server.log} \
 	MAESTRO_CLIENT_LOG_FILE=$${MAESTRO_CLIENT_LOG_FILE:-$(LOG_DIR)/client.log} \
 	go run . $(ARGS)
+
+## server-start: make run ARGS="server start"; extra flags via ARGS
+server-start:
+	$(MAKE) run ARGS="server start $(ARGS)"
+
+## client-start: make run ARGS="client start"; extra flags via ARGS
+client-start:
+	$(MAKE) run ARGS="client start $(ARGS)"
 
 ## test: run tests with race detector and coverage summary
 test:
