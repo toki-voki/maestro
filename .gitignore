@@ -42,6 +42,8 @@ node_modules/
 bin/
 # Per-checkout dev tools (make tools)
 .bin/
+# make run logs
+.logs/
 dist/
 # make manifest output; the real one is a release asset, never committed
 distribution/latest.json

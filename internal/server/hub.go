@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"os"
 	"path/filepath"
@@ -17,6 +18,7 @@ type Hub struct {
 	clients   map[int]*Client
 	nextID    int
 	closeOnce sync.Once
+	logger    *slog.Logger
 }
 
 type Client struct {
@@ -24,7 +26,7 @@ type Client struct {
 	connection net.Conn
 }
 
-func NewHub(path string) (*Hub, error) {
+func NewHub(path string, logger *slog.Logger) (*Hub, error) {
 	err := os.MkdirAll(filepath.Dir(path), 0o700)
 	if err != nil {
 		return nil, fmt.Errorf("[Hub] Failed to create socket directory. [error=%w]", err)
@@ -52,6 +54,7 @@ func NewHub(path string) (*Hub, error) {
 		path:     path,
 		listener: listener,
 		clients:  make(map[int]*Client),
+		logger:   logger.With("component", "hub"),
 	}, nil
 }
 
@@ -96,23 +99,23 @@ func (hub *Hub) Close() error {
 
 func (hub *Hub) handle(connection net.Conn) {
 	client := hub.add(connection)
-	fmt.Printf("[Hub] New client connect: %d\n", client.id)
+	hub.logger.Info("client attached", "client", client.id)
 
 	defer func() {
 		hub.remove(client)
 		connection.Close()
-		fmt.Printf("[Hub] Client disconnect: %d\n", client.id)
+		hub.logger.Info("client detached", "client", client.id)
 	}()
 
 	buffer := make([]byte, 4096)
 	for {
 		readBytes, err := connection.Read(buffer)
 		if readBytes > 0 {
-			fmt.Printf("[Hub] Client %d sent: %q\n", client.id, buffer[:readBytes])
+			hub.logger.Debug("client sent", "client", client.id, "bytes", readBytes, "data", string(buffer[:readBytes]))
 		}
 		if err != nil {
 			if !errors.Is(err, io.EOF) && !errors.Is(err, net.ErrClosed) {
-				fmt.Fprintf(os.Stderr, "[Hub] Failed to read from client %d. [error=%v]\n", client.id, err)
+				hub.logger.Error("read from client", "client", client.id, "err", err)
 			}
 			return
 		}

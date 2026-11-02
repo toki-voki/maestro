@@ -5,6 +5,7 @@ GOBIN      ?= $(shell go env GOPATH)/bin
 VERSION    := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS    := -s -w -X $(MODULE)/cmd.version=$(VERSION)
 ARGS       ?=
+LOG_DIR    := $(CURDIR)/.logs
 
 # Dev tools. Either go.mod `tool` directives (run with `go tool <name>`,
 # versioned by go.mod: govulncheck) or, when their dependency graph is too big
@@ -46,8 +47,10 @@ build:
 	@mkdir -p $(BIN_DIR)
 	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BINARY) .
 
-## run: go run with ARGS, e.g. make run ARGS="server start"
+## run: go run with ARGS, e.g. make run ARGS="server start"; logs go to .logs/ unless MAESTRO_*_LOG_FILE is set
 run:
+	MAESTRO_SERVER_LOG_FILE=$${MAESTRO_SERVER_LOG_FILE:-$(LOG_DIR)/server.log} \
+	MAESTRO_CLIENT_LOG_FILE=$${MAESTRO_CLIENT_LOG_FILE:-$(LOG_DIR)/client.log} \
 	go run . $(ARGS)
 
 ## test: run tests with race detector and coverage summary
@@ -111,9 +114,9 @@ release-snapshot: $(GORELEASER)
 manifest:
 	scripts/gen-manifest.sh dist distribution/latest.json
 
-## clean: remove bin/, dist/ and coverage files
+## clean: remove bin/, dist/, .logs/ and coverage files
 clean:
-	rm -rf $(BIN_DIR) dist coverage.out
+	rm -rf $(BIN_DIR) dist $(LOG_DIR) coverage.out
 
 ## clean-tools: remove .bin/ dev tools (reinstalled on demand)
 clean-tools:
