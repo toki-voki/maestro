@@ -43,6 +43,12 @@ commands:
 	client start    attach to the server
 	version         print version
 
+environment:
+	MAESTRO_LOG_LEVEL          log level: debug, info, warn or error (default info)
+	MAESTRO_SERVER_LOG_FILE    server log file (default $XDG_STATE_HOME/maestro/server.log)
+	MAESTRO_CLIENT_LOG_FILE    client log file (default $XDG_STATE_HOME/maestro/client.log)
+
+The --log-level and --log-file flags of "server start" and "client start" override these.
 Run "maestro <command> -h" for help on a command.
 `)
 }

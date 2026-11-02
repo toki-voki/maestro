@@ -2,19 +2,20 @@ package server
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"syscall"
 )
 
-func Start() int {
-	fmt.Println("[Server] Maestro server starting...")
+func Start(logger *slog.Logger) int {
+	logger.Info("server starting")
 
 	socketFilePath := defaultSocketFilePath()
-	hub, err := NewHub(socketFilePath)
+	hub, err := NewHub(socketFilePath, logger)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[Server] Failed to start the hub. [error=%v]\n", err)
+		logger.Error("start hub", "err", err)
 		return 1
 	}
 
@@ -24,23 +25,23 @@ func Start() int {
 		<-sig
 		closeError := hub.Close()
 		if closeError != nil {
-			fmt.Fprintf(os.Stderr, "[Server] Failed to close the hub. [error=%v]\n", closeError)
+			logger.Error("close hub", "err", closeError)
 		}
 	}()
 
-	fmt.Printf("[Server] Maestro server listening on %s\n", socketFilePath)
+	logger.Info("server listening", "socket", socketFilePath)
 
 	err = hub.Serve()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[Server] Hub failed to serve. [error=%v]\n", err)
+		logger.Error("serve hub", "err", err)
 		closeError := hub.Close()
 		if closeError != nil {
-			fmt.Fprintf(os.Stderr, "[Server] Failed to close the hub. [error=%v]\n", closeError)
+			logger.Error("close hub", "err", closeError)
 		}
 		return 1
 	}
 
-	fmt.Printf("[Server] Maestro server stopped\n")
+	logger.Info("server stopped")
 	return 0
 }
 
